@@ -1,5 +1,8 @@
 # FTX-Telegram-Bot
 Bot for sending telegram messages on order fills on cryptocurrency exchange FTX.
+Just put in the right info into a file called settings.py as shown in example_settings.py.
+
+Note: there are some problems as this is a VIP, please only use as a base to build on.
 
 TODO:
 
