@@ -14,6 +14,8 @@ class FTXClientWrapper(FtxWebsocketClient):
         self.telegram_bot = TelegramClient(token, chat_id)
         self.rest_client = FtxClient(api_key, api_secret)
 
+        self.last_received_fills = {}
+
         # Subscribe
         self.get_fills()
         self.get_orders()
@@ -31,8 +33,16 @@ class FTXClientWrapper(FtxWebsocketClient):
         symbol = data['market']
         side = data['side'].upper()
         price = data['price']
+        size = data['size']
+
+        if symbol in self.last_received_fills and time.time() - self.last_received_fills[symbol] < 5:
+            print("Received double message, ignoring.")
+            return
+        self.last_received_fills[symbol] = time.time()
 
         tp, sl = self.get_tp_and_sl_prices(symbol)
+
+        position = self.rest_client.get_position(symbol, True)
 
         if side == 'BUY':
             rr = (tp - price) / sl - price
@@ -40,6 +50,8 @@ class FTXClientWrapper(FtxWebsocketClient):
             rr = (price - tp) / (price - sl)
 
         message_text = f'New position opened\n-------------------------------\n{side} {symbol} \
-                       \nEntry price: {price}\nSL: {sl} | TP: {tp}\nRisk/reward: {round(rr, 2)}'
+                       \nSize: {size}\nEntry price: {price}\nSL: {sl} | TP: {tp}\nRisk/reward: {round(rr, 2)}'
+
+        print("Sending message:\n", message_text, "\n")
 
         self.telegram_bot.send_message(message_text)

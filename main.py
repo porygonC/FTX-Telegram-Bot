@@ -10,5 +10,7 @@ if __name__ == "__main__":
 
     bot = FTXClientWrapper(telegram_token, chat_id, api_key, api_secret)
 
+    print("Running main loop forever.")
+
     while True:
         time.sleep(60)
