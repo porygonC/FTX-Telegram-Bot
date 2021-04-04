@@ -22,9 +22,12 @@ class FTXClientWrapper(FtxWebsocketClient):
 
     def get_tp_and_sl_prices(self, symbol):
         tp_sl = self.rest_client.get_open_trigger_orders(symbol)
-        sl = next(item for item in tp_sl if item['type'] == 'stop')['triggerPrice']
-        tp = next(item for item in tp_sl if item['type'] == 'take_profit')['triggerPrice']
-        return (tp, sl)
+        try:
+            sl = next(item for item in tp_sl if item['type'] == 'stop')
+            tp = next(item for item in tp_sl if item['type'] == 'take_profit')
+        except Exception as e:
+            return (0, 0)
+        return (tp['triggerPrice'], sl['triggerPrice'])
 
     def _handle_fills_message(self, message):
         super()._handle_fills_message(message)
@@ -39,19 +42,25 @@ class FTXClientWrapper(FtxWebsocketClient):
             print("Received double message, ignoring.")
             return
         self.last_received_fills[symbol] = time.time()
+        print("Received message.")
 
         tp, sl = self.get_tp_and_sl_prices(symbol)
 
-        position = self.rest_client.get_position(symbol, True)
+        if 'PERP' in symbol:
+            position = self.rest_client.get_position(symbol, True)
+            print(position)
 
-        if side == 'BUY':
-            rr = (tp - price) / sl - price
+        if not tp or not sl:
+            rr = 'none'
         else:
-            rr = (price - tp) / (price - sl)
+            if side == 'BUY':
+                rr = round( (tp - price) / (price - sl), 2 )
+            else:
+                rr = round( (price - tp) / (sl - price), 2 )
 
-        message_text = f'New position opened\n-------------------------------\n{side} {symbol} \
-                       \nSize: {size}\nEntry price: {price}\nSL: {sl} | TP: {tp}\nRisk/reward: {round(rr, 2)}'
+        message_text = f'New order filled:\n----------------------------\n{side} {symbol} \
+                       \nSize: {size}\nEntry price: {price}\nSL: {sl} | TP: {tp}\nRisk/reward: {rr}'
 
-        print("Sending message:\n", message_text, "\n")
+        print("Sending message:\n\n" + message_text + "\n")
 
         self.telegram_bot.send_message(message_text)

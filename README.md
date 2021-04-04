@@ -6,10 +6,13 @@ Note: there are some problems as this is a VIP, please only use as a base to bui
 
 TODO:
 
+Add a check for perpetual fills and store them so you know when it's closed.
+
 I have to deal with when orders are filled in 2 parts.
 Maybe store the current fill and after 1s or smth send the message.
     Better alternative: Just use the rest position endpoint.
 	https://docs.ftx.com/#get-positions
+    Can only do for PERP.
 
 Also, fix that risk/reward thing it's getting all messed up.
 
