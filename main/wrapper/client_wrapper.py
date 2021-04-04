@@ -9,10 +9,10 @@ from main.utils.funcs import get_message_text_spot, get_message_text_futures
 ''' Wraps the websocket client, has extra methods we need to handle fills. '''
 class FTXClientWrapper(FtxWebsocketClient):
     
-    def __init__(self, token, chat_id, api_key, api_secret):
+    def __init__(self, token, chat_ids, api_key, api_secret):
         super().__init__(api_key, api_secret)
 
-        self.telegram_bot = TelegramClient(token, chat_id)
+        self.telegram_bot = TelegramClient(token, chat_ids)
         self.rest_client = FtxClient(api_key, api_secret)
 
         self.last_received_fills = {}
