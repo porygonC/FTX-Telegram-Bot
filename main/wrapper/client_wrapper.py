@@ -3,6 +3,7 @@ import time
 from main.ftx.ws_client import FtxWebsocketClient
 from main.ftx.client import FtxClient
 from main.telegram.telegram_client import TelegramClient
+from main.utils.funcs import get_message_text_spot, get_message_text_futures
 
 
 ''' Wraps the websocket client, has extra methods we need to handle fills. '''
@@ -41,32 +42,15 @@ class FTXClientWrapper(FtxWebsocketClient):
             print("Received double message, ignoring.")
             return
         self.last_received_fills[symbol] = time.time()
-        print("Received message.")
 
         tp, sl = self.get_tp_and_sl_prices(symbol)
 
-        # Check if it's a perpetual contract
+        # Check if it's a futures contract
         if 'PERP' in symbol or '0625' in symbol or '1231' in symbol or '0924' in symbol:
             position = self.rest_client.get_position(symbol, True)
-            if position['size'] == 0:
-                message_text = f'Position closed:\n------------------------- \
-                                 \n{symbol}'
-            else:
-                if not tp:
-                    rr = 'none'
-                else:
-                    rr = round( (tp - price) / (price - sl), 2 ) if side == 'BUY' else round( (price - tp) / (sl - price), 2 )
-                    message_text = f'New order filled:\n----------------------------\n{side} {symbol} \
-                             \nEntry price: {price}\nSL: {sl} | TP: {tp}\nRisk/reward: {rr}'
-
+            message_text = get_message_text_futures(position, tp, sl, symbol, side, price)
         else:
-            if not tp or not sl:
-                rr = 'none'
-            else:
-                rr = round( (tp - price) / (price - sl), 2 ) if side == 'BUY' else round( (price - tp) / (sl - price), 2 )
-
-            message_text = f'New order filled:\n----------------------------\n{side} {symbol} \
-                             \nEntry price: {price}\nSL: {sl} | TP: {tp}\nRisk/reward: {rr}'
+            message_text = get_message_text_spot(tp, sl, symbol, side, price)
 
         print("Sending message:\n\n" + message_text + "\n")
 
