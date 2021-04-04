@@ -1,7 +1,7 @@
 import telegram
 
 
-''' Sends messages to a specified user via telegram. '''
+''' Sends messages to a specified set of users via telegram. '''
 class TelegramClient:
 
     def __init__(self, token, chat_ids):
