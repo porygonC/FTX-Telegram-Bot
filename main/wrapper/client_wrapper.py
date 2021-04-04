@@ -36,7 +36,6 @@ class FTXClientWrapper(FtxWebsocketClient):
         symbol = data['market']
         side = data['side'].upper()
         price = data['price']
-        size = data['size']
 
         if symbol in self.last_received_fills and time.time() - self.last_received_fills[symbol] < 5:
             print("Received double message, ignoring.")
@@ -46,20 +45,28 @@ class FTXClientWrapper(FtxWebsocketClient):
 
         tp, sl = self.get_tp_and_sl_prices(symbol)
 
-        if 'PERP' in symbol:
+        # Check if it's a perpetual contract
+        if 'PERP' in symbol or '0625' in symbol or '1231' in symbol or '0924' in symbol:
             position = self.rest_client.get_position(symbol, True)
-            print(position)
-
-        if not tp or not sl:
-            rr = 'none'
-        else:
-            if side == 'BUY':
-                rr = round( (tp - price) / (price - sl), 2 )
+            if position['size'] == 0:
+                message_text = f'Position closed:\n------------------------- \
+                                 \n{symbol}'
             else:
-                rr = round( (price - tp) / (sl - price), 2 )
+                if not tp:
+                    rr = 'none'
+                else:
+                    rr = round( (tp - price) / (price - sl), 2 ) if side == 'BUY' else round( (price - tp) / (sl - price), 2 )
+                    message_text = f'New order filled:\n----------------------------\n{side} {symbol} \
+                             \nEntry price: {price}\nSL: {sl} | TP: {tp}\nRisk/reward: {rr}'
 
-        message_text = f'New order filled:\n----------------------------\n{side} {symbol} \
-                       \nSize: {size}\nEntry price: {price}\nSL: {sl} | TP: {tp}\nRisk/reward: {rr}'
+        else:
+            if not tp or not sl:
+                rr = 'none'
+            else:
+                rr = round( (tp - price) / (price - sl), 2 ) if side == 'BUY' else round( (price - tp) / (sl - price), 2 )
+
+            message_text = f'New order filled:\n----------------------------\n{side} {symbol} \
+                             \nEntry price: {price}\nSL: {sl} | TP: {tp}\nRisk/reward: {rr}'
 
         print("Sending message:\n\n" + message_text + "\n")
 
